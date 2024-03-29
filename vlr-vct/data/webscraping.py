@@ -1,8 +1,8 @@
 import requests
 from bs4 import BeautifulSoup
+from lxml import html
 
-
-regionDict = {
+vlrregionDict = {
     'na': ['north-america', 'North-America'],
     'eu': ['europe', 'Europe'],
     'ap': ['asia-pacific', 'Asia-Pacific'],
@@ -16,7 +16,7 @@ regionDict = {
     'br': ['brazil', 'Brazil'],
     'cn': ['china', 'China']
 }
-mapDict = {
+vlrmapDict = {
     "1": ["bind", "Bind"],
     "2": ["Haven", "haven"],
     "3": ["Split", "split"],
@@ -28,19 +28,50 @@ mapDict = {
     "11": ["Lotus", "lotus"],
     "12": ["sunset", "Sunset"]
 }
-timestampDict = {
+vlrtimestampDict = {
     "30d" : [30, "30"],
     "60d" : [60, "60"],
     "90d": [90, "90"],
     "all": "all"
 }
-
-eventDict = {
+vlreventDict = {
     "1921": ["masters madrid", "Masters Madrid"], 
-    "1923" : ["americas kickoff", "Americas Kickoff"]
+    "1923" : ["americas kickoff", "Americas Kickoff"], 
+    "1657" : ["champions 2023", "Champions 2023"]
 }
 
-def getKey(d, value):
+spkregionDict = {
+    "5" : ["Brazil", "brazil"], 
+    "2": ["europe", "Europe"], 
+    "4" : ["Japan", "japan"],
+    "3" : ["Korea", "korea"], 
+    "6" : ['la-n', 'La-N'],
+    "10": ['la-s', 'La-S'],
+    "1": ['north-america', 'North-America'],
+    "8": ['oceania', 'Oceania'], 
+    "9" : ["other"],
+    "7": ["Southeast-Asia", "southeast-asia"]
+}
+spkmapDict = {
+    "2": ["bind", "Bind"],
+    "3": ["Haven", "haven"],
+    "1": ["Split", "split"],
+    "4": ["ascent", "Ascent"],
+    "5": ["Icebox", "icebox"],
+    "6": ["Breeze", "breeze"],
+    "7": ["Fracture", "fracture"],
+    "8": ["pearl", "Pearl"],
+    "9": ["Lotus", "lotus"],
+    "10": ["sunset", "Sunset"]
+}
+spkeventDict = {
+    "3040": ["masters madrid", "Masters Madrid"], 
+    "2998" : ["americas kickoff", "Americas Kickoff"], 
+    "2543" : ["champions 2023", "Champions 2023"]
+}
+
+
+def getKey(d, value): #helper function
     """
     Return the key in the dictionary d that corresponds to the value.
     Value comparison accounts for both lists and single-value entries. 
@@ -58,16 +89,15 @@ def getKey(d, value):
                 return key
     return None
 
-
 def scrapePlayerStats (regionID: str="all", eventSeries: str="61", eventID: int="all", minRounds: int="all", minRating: int="all", agent:str="all", mapID: str="all", timespan:int=60): #61 for franchising valorant,
     """get the stats of players
 
     Args:
         each param is a filter essentially 
     """
-    region = getKey(regionDict, regionID) or regionID
-    map = getKey(mapDict, mapID) or mapID
-    Timespan = getKey(timestampDict, timespan) or timespan
+    region = getKey(vlrregionDict, regionID) or regionID
+    map = getKey(vlrmapDict, mapID) or mapID
+    Timespan = getKey(vlrtimestampDict, timespan) or timespan
     
     url = f"https://www.vlr.gg/stats/?event_group_id={eventSeries}&event_id={eventID}&series_id=all&region={region}&country=all&min_rounds={minRounds}&min_rating={minRating}&agent={agent}&map_id={map}&timespan={Timespan}"
     print(url)
@@ -83,7 +113,8 @@ def scrapePlayerStats (regionID: str="all", eventSeries: str="61", eventID: int=
         player_info_list = player_info.split()
         player_name = player_info_list[0] #player name
         organization = player_info_list[1] if len(player_info_list) > 1 else "None" #player org
-
+        
+        rounds_played = row.select_one("td.mod-rnd").get_text(strip=True) if row.select_one('td.mod-rnd') else None
         # Extracting the stats from the "mod-color-sq" class
         stats = [stat.get_text() for stat in row.select("td.mod-color-sq")] 
         print(stats) 
@@ -107,6 +138,7 @@ def scrapePlayerStats (regionID: str="all", eventSeries: str="61", eventID: int=
             players_stats.append({
                 "player": player_name,
                 "organization": organization, 
+                "rounds_played" : rounds_played,
                 "average_combat_score": average_combat_score,
                 "kill_death_ratio": kill_death_ratio, 
                 "kills_assists_survived_traded": kast,
@@ -131,5 +163,31 @@ def scrapePlayerStats (regionID: str="all", eventSeries: str="61", eventID: int=
     data = {"players_stats": players_stats}
 
     return data
+  
+  
+def scrapeAgentStats (region: str = "all", map: str = "all", event: str="all"): 
+    regionID = getKey(spkregionDict, region) or region
+    mapID = getKey(spkmapDict, map) or map
+    eventID = getKey(spkeventDict, event) or event
     
+    url = f"https://www.thespike.gg/valorant-stats/agents#region={regionID}&map={mapID}&event={eventID}"
+    response = requests.get(url)
+    response.raise_for_status()
     
+    soup = BeautifulSoup(response.content, 'lxml')
+    
+    rows = soup.select("div[class^='stats_tableRow']")
+    stats = []
+    for row in rows: 
+        print(row)
+        row_data = {}
+        spans = row.select('span')
+        for i, span in enumerate(spans):
+            row_data[f'data{i}'] = span.text.strip()
+        stats.append(row_data)
+        
+    print(stats)
+        
+    
+
+scrapeAgentStats(region="north-america", map="ascent", event="masters madrid")
