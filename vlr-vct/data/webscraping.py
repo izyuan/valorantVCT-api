@@ -1,6 +1,7 @@
 import requests
 from bs4 import BeautifulSoup
 from lxml import html
+import json
 
 vlrregionDict = {
     'na': ['north-america', 'North-America'],
@@ -165,29 +166,27 @@ def scrapePlayerStats (regionID: str="all", eventSeries: str="61", eventID: int=
     return data
   
   
-def scrapeAgentStats (region: str = "all", map: str = "all", event: str="all"): 
-    regionID = getKey(spkregionDict, region) or region
-    mapID = getKey(spkmapDict, map) or map
-    eventID = getKey(spkeventDict, event) or event
-    
-    url = f"https://www.thespike.gg/valorant-stats/agents#region={regionID}&map={mapID}&event={eventID}"
+def scrapeAgentStats (): 
+    import json
+    url = f"https://www.vlr.gg/event/agents/1921/"
     response = requests.get(url)
-    response.raise_for_status()
     
     soup = BeautifulSoup(response.content, 'lxml')
-    
-    rows = soup.select("div[class^='stats_tableRow']")
-    stats = []
-    for row in rows: 
-        print(row)
-        row_data = {}
-        spans = row.select('span')
-        for i, span in enumerate(spans):
-            row_data[f'data{i}'] = span.text.strip()
-        stats.append(row_data)
-        
-    print(stats)
-        
-    
+    row = soup.find('tr', class_='pr-global-row')
+    map_data = {}
 
-scrapeAgentStats(region="north-america", map="ascent", event="masters madrid")
+    for td in row.find_all('td'):
+        if 'mod-right' in td.get('class', []):
+            key = td.get_text().strip()
+            map_data[key] = td.get_text().strip()
+        elif 'mod-color-sq' in td.get('class', []):
+            color_sq = td.find('div', class_='color-sq')
+            if color_sq:
+                span = color_sq.find('span')
+                if span:
+                    value = span.get_text().strip()
+                    
+    json_data = json.dumps(map_data, indent=4)
+    print(json_data)
+    
+scrapeAgentStats()
