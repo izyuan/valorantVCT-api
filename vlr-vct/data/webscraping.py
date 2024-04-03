@@ -2,6 +2,7 @@ import requests
 from bs4 import BeautifulSoup
 from lxml import html
 import json
+import re
 
 vlrregionDict = {
     'na': ['north-america', 'North-America'],
@@ -90,15 +91,21 @@ def getKey(d, value): #helper function
                 return key
     return None
 
+def match_td_style(tag):
+    return (tag.name == "td" and
+            tag.get("style") == "white-space: nowrap; padding-top: 0; padding-bottom: 0;")
+
 def scrapePlayerStats (regionID: str="all", eventSeries: str="61", eventID: int="all", minRounds: int="all", minRating: int="all", agent:str="all", mapID: str="all", timespan:int=60): #61 for franchising valorant,
     """get the stats of players
 
     Args:
         each param is a filter essentially 
     """
+    #getting the id for vlr
     region = getKey(vlrregionDict, regionID) or regionID
-    map = getKey(vlrmapDict, mapID) or mapID
+    map = getKey(vlrmapDict, mapID) or mapID 
     Timespan = getKey(vlrtimestampDict, timespan) or timespan
+    eventID = getKey(vlreventDict, eventID) or "all"
     
     url = f"https://www.vlr.gg/stats/?event_group_id={eventSeries}&event_id={eventID}&series_id=all&region={region}&country=all&min_rounds={minRounds}&min_rating={minRating}&agent={agent}&map_id={map}&timespan={Timespan}"
     print(url)
@@ -118,7 +125,6 @@ def scrapePlayerStats (regionID: str="all", eventSeries: str="61", eventID: int=
         rounds_played = row.select_one("td.mod-rnd").get_text(strip=True) if row.select_one('td.mod-rnd') else None
         # Extracting the stats from the "mod-color-sq" class
         stats = [stat.get_text() for stat in row.select("td.mod-color-sq")] 
-        print(stats) 
         if len(stats) == 11: 
             rating, average_combat_score, kill_death_ratio, kast, average_damage_per_round, kills_per_round, assists_per_round, first_kills_per_round, first_deaths_per_round, headshot_percentage, clutch_success_percentage = stats
             if clutch_success_percentage == None:
@@ -162,31 +168,91 @@ def scrapePlayerStats (regionID: str="all", eventSeries: str="61", eventID: int=
             return {"status": "failed"}
 
     data = {"players_stats": players_stats}
+    
+    jsondata = json.dumps(data, indent=4)
 
-    return data
+    return jsondata
   
   
 def scrapeAgentStats (): 
-    import json
     url = f"https://www.vlr.gg/event/agents/1921/"
     response = requests.get(url)
-    
     soup = BeautifulSoup(response.content, 'lxml')
-    row = soup.find('tr', class_='pr-global-row')
-    map_data = {}
 
-    for td in row.find_all('td'):
-        if 'mod-right' in td.get('class', []):
-            key = td.get_text().strip()
-            map_data[key] = td.get_text().strip()
-        elif 'mod-color-sq' in td.get('class', []):
-            color_sq = td.find('div', class_='color-sq')
-            if color_sq:
-                span = color_sq.find('span')
-                if span:
-                    value = span.get_text().strip()
-                    
-    json_data = json.dumps(map_data, indent=4)
-    print(json_data)
+    agentpickrates = []
+    map_stats = []
+    row_stats = []
+    map_rows = []
+    map_names = []
     
-scrapeAgentStats()
+    img_tags = soup.find_all('img', {'src': re.compile(r'/agents/')})
+    agents = [re.search(r'/agents/(\w+)\.png', img_tag['src']).group(1) for img_tag in img_tags]
+    #agents good
+    
+    for tr in soup.find_all('tr'):
+        #extracting agent PR
+        tds = tr.find_all('td', class_="mod-color-sq")
+        map_tds = tr.find_all("td", class_="mod-right")
+        #extracting agent PRS
+        if tds:
+            row_stats = []
+            for td in tds:
+                color_sq = td.find_all('div', class_='color-sq') #looking for the div 
+                if color_sq:
+                    span = color_sq[0].find('span') #find span and get text
+                    if span:
+                        value = span.get_text().strip()
+                        row_stats.append(value)
+            agentpickrates.append(row_stats)
+            
+        #extracting map stats
+        if map_tds:
+            map_rows = []
+            for v in map_tds: #taking out each value 
+                map_value = v.get_text().strip()
+                map_rows.append(map_value)
+            map_stats.append(map_rows)
+        
+        #using the function to get style, and then finding the map names by td style because there is no class
+        matching_tds = tr.find_all(match_td_style)
+        for maptd in matching_tds:
+            map_names.append(maptd.text.strip())
+            map_names = [item.split()[-1] for item in map_names if item.strip()]
+
+    
+    #agent pickrates good
+    print(agentpickrates)
+    print(agents)
+    print(map_stats)
+    print(map_names)
+    
+    #dictionary!
+    data = {
+        "global": {
+            "agent_pick_rates": {agent: rate for agent, rate in zip(agents, agentpickrates[0])},
+            "map_stats": {
+                "maps_picked": map_stats[0][0],
+                "atk_win_rate": map_stats[0][1],
+                "def_win_rate": map_stats[0][2]
+            }
+        },
+        "maps": {}
+    }
+    
+    #adding for loop for maps
+    for i, map_name in enumerate(map_names[1:], start=1):  # Skip 'Global'
+        data["maps"][map_name] = {
+            "agent_pick_rates": {agent: rate for agent, rate in zip(agents, agentpickrates[i])},
+            "map_stats": {
+                "maps_picked": map_stats[i][0],
+                "atk_win_rate": map_stats[i][1],
+                "def_win_rate": map_stats[i][2]
+            }
+        }
+    
+    jsondata = json.dumps(data, indent=4)
+    
+    return jsondata
+        
+print(scrapeAgentStats())
+print(scrapePlayerStats(eventID="masters madrid"))
