@@ -69,7 +69,8 @@ spkmapDict = {
 spkeventDict = {
     "3040": ["masters madrid", "Masters Madrid"], 
     "2998" : ["americas kickoff", "Americas Kickoff"], 
-    "2543" : ["champions 2023", "Champions 2023"]
+    "2543" : ["champions 2023", "Champions 2023"],
+    "1189": ["Champions Tour 2023 Americas League", "champions tour 2023 americas league"]
 }
 
 
@@ -174,8 +175,9 @@ def scrapePlayerStats (regionID: str="all", eventSeries: str="61", eventID: int=
     return jsondata
   
   
-def scrapeAgentStats (): 
-    url = f"https://www.vlr.gg/event/agents/1921/"
+def scrapeAndMapAgentStats (event: str=None): 
+    url = f"https://www.vlr.gg/event/agents/{event}/"
+    print(f" url : {url}")
     response = requests.get(url)
     soup = BeautifulSoup(response.content, 'lxml')
 
@@ -220,12 +222,6 @@ def scrapeAgentStats ():
             map_names = [item.split()[-1] for item in map_names if item.strip()]
 
     
-    #agent pickrates good
-    print(agentpickrates)
-    print(agents)
-    print(map_stats)
-    print(map_names)
-    
     #dictionary!
     data = {
         "global": {
@@ -254,5 +250,11 @@ def scrapeAgentStats ():
     
     return jsondata
         
-print(scrapeAgentStats())
-print(scrapePlayerStats(eventID="masters madrid"))
+"""
+def scrapeTeamStats (team:str="all",event: str="all", core:str="all", date_start: str="", date_end:str=""): #dates must be in YYYY-MM-DD 
+    url = f"vlr.gg/team/stats/{team}/?event_id={event}&series_id=all&core_id{core}&date_start={date_start}&date_end={date_end}"
+    print(url)
+    
+    
+scrapeTeamStats(team="1034",event="2004", core="2000", date_start="2024-04-01")
+"""

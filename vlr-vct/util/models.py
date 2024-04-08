@@ -11,3 +11,6 @@ class PlayerStats(BaseModel):
     timespan: str = Field(default="60", alias='timespan')
     class Config:
         populate_by_name = True
+
+class AgentPickrates (BaseModel):
+    event : str= "1921"
