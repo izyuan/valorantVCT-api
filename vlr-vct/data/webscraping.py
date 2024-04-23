@@ -221,7 +221,6 @@ def scrapeAndMapAgentStats (event: str=None):
             map_names.append(maptd.text.strip())
             map_names = [item.split()[-1] for item in map_names if item.strip()]
 
-    
     #dictionary!
     data = {
         "global": {
@@ -234,7 +233,6 @@ def scrapeAndMapAgentStats (event: str=None):
         },
         "maps": {}
     }
-    
     #adding for loop for maps
     for i, map_name in enumerate(map_names[1:], start=1):  # Skip 'Global'
         data["maps"][map_name] = {
@@ -250,11 +248,21 @@ def scrapeAndMapAgentStats (event: str=None):
     
     return jsondata
         
-"""
+
 def scrapeTeamStats (team:str="all",event: str="all", core:str="all", date_start: str="", date_end:str=""): #dates must be in YYYY-MM-DD 
-    url = f"vlr.gg/team/stats/{team}/?event_id={event}&series_id=all&core_id{core}&date_start={date_start}&date_end={date_end}"
+    
+    #getting the html for the stats
+    url = f"https://vlr.gg/team/stats/{team}/?event_id={event}&series_id=all&core_id{core}&date_start={date_start}&date_end={date_end}"
     print(url)
+    response = requests.get(url)
+    soup = BeautifulSoup(response.content, "lxml")
+    
+    #finding the table for the statistics
+    table = soup.find("table", class_="wf-table mod-team-maps" )
+    rows = table.find_all("tr")
+    for row in rows: 
+        
+        print(rows)
     
     
-scrapeTeamStats(team="1034",event="2004", core="2000", date_start="2024-04-01")
-"""
+scrapeTeamStats(team="1034",event="2004")
