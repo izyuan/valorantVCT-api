@@ -14,3 +14,10 @@ class PlayerStats(BaseModel):
 
 class AgentPickrates (BaseModel):
     event : str= "1921"
+    
+class TeamStats (BaseModel):
+    teamID : str="all"
+    event : str = "all"
+    core:str="all"
+    date_start: str=""
+    date_end:str=""

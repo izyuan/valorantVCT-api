@@ -3,6 +3,7 @@ from bs4 import BeautifulSoup
 from lxml import html
 import json
 import re
+import sys
 
 vlrregionDict = {
     'na': ['north-america', 'North-America'],
@@ -257,9 +258,15 @@ def scrapeTeamStats (team:str="all",event: str="all", core:str="all", date_start
     response = requests.get(url)
     soup = BeautifulSoup(response.content, "lxml")
     
-    #finding the table for the statistics
-    table = soup.find("table", class_="wf-table mod-team-maps")
-    rows = table.find_all("tr")
+    try:
+        #finding the table for the statistics
+        table = soup.find("table", class_="wf-table mod-team-maps")
+        rows = table.find_all("tr")
+    except Exception as e: 
+        print(f"error finding data: check the parameters \n Error Message : {e}")
+        #exit the program if excpetion is hit
+        sys.exit(1)
+    
     data_list = []
     single_map_data = []
     
@@ -281,10 +288,10 @@ def scrapeTeamStats (team:str="all",event: str="all", core:str="all", date_start
         match = re.search(r'\((\d+)\)', map_name_times_played)
         number_num = match.group(1)
         perm_map_list = map_name_times_played.split(" ")
-        map_name_times_played = perm_map_list[0]
+        map_name = perm_map_list[0]
         #creating a dictionary
         single_map_dict = {
-        "map_name" : map_name_times_played, 
+        "map_name" : map_name, 
         "times_played": number_num, 
         "win%" : single_map_data[1], 
         "wins": single_map_data[2],
@@ -299,11 +306,7 @@ def scrapeTeamStats (team:str="all",event: str="all", core:str="all", date_start
         "def_rl": single_map_data[11], 
         }
         
-        data_list.append(single_map_dict)
-        single_map_data=[] 
-        
         single_map_dict["agent_compositions"] = []
-        
         #obtaining the agent composition 
         team_composition_scrape = row.find_all("div", class_="agent-comp-agg mod-first")
         for team_composition in team_composition_scrape:
@@ -322,11 +325,71 @@ def scrapeTeamStats (team:str="all",event: str="all", core:str="all", date_start
             "composition": agents,
             "times_used": team_composition_amt
         })
-    
-
-        
-    jsondata = json.dumps(data_list, indent=4)
-    print(jsondata)
-             
             
-scrapeTeamStats(team="1034",event="2004")
+        #obtaining the toggled data
+        single_map_dict["game_history"] = []
+        game_history_scrapes = soup.find_all("tr", class_= f"mod-toggle mod-{map_name}")
+        for match_data in game_history_scrapes:
+            #extracting the data
+            link_html = match_data.find("a")
+            link = "vlr.gg" + link_html.get("href")
+            match_htmls = match_data.find_all("div")
+            match_stat_list = [match_html.get_text().strip() for match_html in match_htmls if "\t" not in match_html.get_text().strip()
+                               and match_html.get_text().strip() != ''
+                               and match_html.get_text().strip() != "def"
+                                and match_html.get_text().strip() != "atk"
+                                and match_html.get_text().strip() != "OT"]
+            
+            single_match_img_tags = match_data.find_all('img', {'src': re.compile(r'/agents/')})
+            single_match_agents = [re.search(r'/agents/(\w+)\.png', img_tag['src']).group(1) for img_tag in single_match_img_tags]
+            
+            single_match_dict = {
+                "date": match_stat_list[0],
+                "opponent" : match_stat_list[1],
+                "total_score" : match_stat_list[3], 
+                "atk_score": match_stat_list[4],
+                "def_score": match_stat_list[5],
+                "ot_score": match_stat_list[6] if len(match_stat_list) ==9 else "na",
+                "stage": match_stat_list[-1],
+                "week": match_stat_list[-2],
+                "team_composition": single_match_agents
+            }
+            single_map_dict["game_history"].append(single_match_dict)
+            
+        
+        data_list.append(single_map_dict)
+        single_map_data=[] 
+        
+   
+    #making it into json data
+    jsondata = json.dumps(data_list, indent=4)
+    return jsondata
+
+def scrapeIndividualPlayer (playerID: str="", timespan: str=""):#timespan sould be 30d, 60d, 90d, all
+    url = f"https://www.vlr.gg/player/{playerID}/?timespan={timespan}"
+    print(f" url : {url}")
+    response = requests.get(url)
+    soup = BeautifulSoup(response.content, 'lxml')
+    
+    player_stat_data = []
+
+    table = soup.find("table", class_="wf-table")
+    body = table.find("tbody")
+    rows = body.find_all("tr")
+    for row in rows:
+        img_tag = row.find('img', {'src': re.compile(r'/agents/')})
+        agent = re.search(r'/agents/(\w+)\.png', img_tag['src']).group(1)
+        print(agent)
+        
+        stats_html_list = row.find_all("td")
+        stats_list = [stat.get_text().strip() for i,stat in enumerate(stats_html_list) if i != 0]
+        print(stats_list)
+        
+        player_stat_dict = {
+            "agent": agent,
+
+        }
+        
+
+
+scrapeIndividualPlayer(playerID="263", timespan="60d")
