@@ -258,11 +258,75 @@ def scrapeTeamStats (team:str="all",event: str="all", core:str="all", date_start
     soup = BeautifulSoup(response.content, "lxml")
     
     #finding the table for the statistics
-    table = soup.find("table", class_="wf-table mod-team-maps" )
+    table = soup.find("table", class_="wf-table mod-team-maps")
     rows = table.find_all("tr")
+    data_list = []
+    single_map_data = []
+    
     for row in rows: 
+        cells = row.find_all("div", class_="mod-first")
+        for cell in cells: 
+            text = cell.get_text().strip()
+            single_map_data.append(text)
+            #getting only the necessary data
+            if len(single_map_data) == 12:
+                break 
         
-        print(rows)
+        #if single map data is none, continue to the next iteration ( we dont need this)
+        if len(single_map_data) == 0:
+            continue
+        
+        #extracting number played 
+        map_name_times_played = single_map_data[0]
+        match = re.search(r'\((\d+)\)', map_name_times_played)
+        number_num = match.group(1)
+        perm_map_list = map_name_times_played.split(" ")
+        map_name_times_played = perm_map_list[0]
+        #creating a dictionary
+        single_map_dict = {
+        "map_name" : map_name_times_played, 
+        "times_played": number_num, 
+        "win%" : single_map_data[1], 
+        "wins": single_map_data[2],
+        "losses": single_map_data[3], 
+        "atk_1st": single_map_data[4], 
+        "def_1st": single_map_data[5], 
+        "atk_rwin%": single_map_data[6], 
+        "atk_rw": single_map_data[7], 
+        "atk_rl": single_map_data[8],
+        "def_rwin%": single_map_data[9], 
+        "def_rw": single_map_data[10], 
+        "def_rl": single_map_data[11], 
+        }
+        
+        data_list.append(single_map_dict)
+        single_map_data=[] 
+        
+        single_map_dict["agent_compositions"] = []
+        
+        #obtaining the agent composition 
+        team_composition_scrape = row.find_all("div", class_="agent-comp-agg mod-first")
+        for team_composition in team_composition_scrape:
+            #getting the amt played for team composition
+            team_composition_text = team_composition.get_text().strip()
+            team_composition_amt = re.search(r'\d+', team_composition_text)
+            if team_composition_amt:
+                team_composition_amt = team_composition_amt.group()
+            else:
+                print("No digits found.")
+
+
+            img_tags = team_composition.find_all('img', {'src': re.compile(r'/agents/')})
+            agents = [re.search(r'/agents/(\w+)\.png', img_tag['src']).group(1) for img_tag in img_tags]
+            single_map_dict["agent_compositions"].append({
+            "composition": agents,
+            "times_used": team_composition_amt
+        })
     
-    
+
+        
+    jsondata = json.dumps(data_list, indent=4)
+    print(jsondata)
+             
+            
 scrapeTeamStats(team="1034",event="2004")
