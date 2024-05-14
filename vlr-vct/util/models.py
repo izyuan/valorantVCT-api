@@ -21,3 +21,7 @@ class TeamStats (BaseModel):
     core:str="all"
     date_start: str=""
     date_end:str=""
+    
+class IndividualPlayerStats (BaseModel): 
+    playerID: str=""
+    timespan: str=""

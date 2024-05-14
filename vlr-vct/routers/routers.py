@@ -1,5 +1,5 @@
 from fastapi import APIRouter
-from util.models import PlayerStats, AgentPickrates, TeamStats
+from util.models import PlayerStats, AgentPickrates, TeamStats, IndividualPlayerStats
 
 router = APIRouter()
 
@@ -34,5 +34,14 @@ async def getTeamStats (data:TeamStats):
         core=data.core,
         date_start=data.date_start,
         date_end= data.date_end
+    )
+    return response
+
+@router.get("/individual_player_stats")
+async def getIndividualStats (data: IndividualPlayerStats):
+    from data.webscraping import scrapeIndividualPlayer
+    response = scrapeIndividualPlayer(
+        playerID=data.playerID, 
+        timespan=data.timespan
     )
     return response

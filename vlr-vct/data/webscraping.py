@@ -147,24 +147,24 @@ def scrapePlayerStats (regionID: str="all", eventSeries: str="61", eventID: int=
             players_stats.append({
                 "player": player_name,
                 "organization": organization, 
-                "rounds_played" : rounds_played,
-                "average_combat_score": average_combat_score,
-                "kill_death_ratio": kill_death_ratio, 
-                "kills_assists_survived_traded": kast,
-                "average_damage_per_round": average_damage_per_round,
-                "kills_per_round": kills_per_round,
-                "assists_per_round": assists_per_round,
-                "first_kills_per_round": first_kills_per_round,
-                "first_deaths_per_round": first_deaths_per_round,
-                "headshot_percentage": headshot_percentage,
-                "clutch_success_percentage": clutch_success_percentage,
-                "clutch_fraction": clutch_fraction,
-                "kill_max" : kill_max_value,
-                "total_kills" : total_kills,
-                "total_deaths": total_deaths,
-                "total_assists": total_assists, 
-                "total_first_kills" : total_first_kills, 
-                "total_first_deaths" : total_first_deaths
+                "rounds" : rounds_played,
+                "acs": average_combat_score,
+                "kdr": kill_death_ratio, 
+                "kast": kast,
+                "adr": average_damage_per_round,
+                "kpr": kills_per_round,
+                "apr": assists_per_round,
+                "fkpr": first_kills_per_round,
+                "fdpr": first_deaths_per_round,
+                "hs%": headshot_percentage,
+                "cl%": clutch_success_percentage,
+                "cl": clutch_fraction,
+                "kmax" : kill_max_value,
+                "k" : total_kills,
+                "d": total_deaths,
+                "a": total_assists, 
+                "fk" : total_first_kills, 
+                "fd" : total_first_deaths
             })
         except:
             return {"status": "failed"}
@@ -377,19 +377,45 @@ def scrapeIndividualPlayer (playerID: str="", timespan: str=""):#timespan sould 
     body = table.find("tbody")
     rows = body.find_all("tr")
     for row in rows:
+        #getting the agent name
         img_tag = row.find('img', {'src': re.compile(r'/agents/')})
         agent = re.search(r'/agents/(\w+)\.png', img_tag['src']).group(1)
-        print(agent)
         
+        #getting the data 
         stats_html_list = row.find_all("td")
         stats_list = [stat.get_text().strip() for i,stat in enumerate(stats_html_list) if i != 0]
-        print(stats_list)
+        #sorting through (x)y%
+        userate = stats_list[0]
+        userate_split = userate.split(" ")
+        num_played =re.search(r'\((\d+)\)', userate_split[0])
+        num_played= num_played.group(1)
+        
         
         player_stat_dict = {
             "agent": agent,
-
+            "games_played": num_played, 
+            "agent_pickrate": userate_split[1], 
+            "rounds": stats_list[1],
+            "ratings" : stats_list[2], 
+            "acs": stats_list[3], 
+            "kd": stats_list[4], 
+            "adr" : stats_list[5], 
+            "kast": stats_list[6], 
+            "kpr": stats_list[7], 
+            "apr": stats_list[8], 
+            "fkpr": stats_list[9], 
+            "fdpr": stats_list[10], 
+            "k": stats_list[11], 
+            "d": stats_list[12],
+            "a": stats_list[13], 
+            "fk": stats_list[14],
+            "fd": stats_list[15]
         }
         
+        player_stat_data.append(player_stat_dict)
+
+    jsondata = json.dumps(player_stat_data, indent=4)
+    return jsondata
 
 
-scrapeIndividualPlayer(playerID="263", timespan="60d")
+#def scrapeMatchData (playerID: str="", timespan: str=""):
