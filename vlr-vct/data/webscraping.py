@@ -5,6 +5,9 @@ import json
 import re
 import sys
 
+#maybe cache it? 
+import sqlite3
+
 vlrregionDict = {
     'na': ['north-america', 'North-America'],
     'eu': ['europe', 'Europe'],
@@ -418,4 +421,152 @@ def scrapeIndividualPlayer (playerID: str="", timespan: str=""):#timespan sould 
     return jsondata
 
 
-#def scrapeMatchData (playerID: str="", timespan: str=""):
+def scrapeIndividualMatchData (gameID: str=""):
+    url = f"https://www.vlr.gg/{gameID}/?game=all&tab=overview"
+    print(f"url: {url}")
+    
+    response = requests.get(url)
+    soup = BeautifulSoup(response.content, 'lxml')
+    
+    html_body = soup.find("div", class_="vm-stats")
+    
+    #first scraping the overview data
+    game_stats = {
+        "match_info": {},
+        "box_scores": {}
+    } 
+    #all maps stats
+    # All maps stats
+    web_body_html = html_body.find_all("div", class_="vm-stats-game")
+    for map_html in web_body_html: 
+        map_id = map_html.get('data-game-id')
+        if map_id == "all":
+            # Initialize the map stats
+            if map_id not in game_stats:
+                game_stats["box_scores"][map_id] = {"both": [], "attack": [], "defense": []}
+            
+            table_body_htmls = map_html.find_all("tbody")
+            for table_body_html in table_body_htmls:
+                rows = table_body_html.find_all("tr")
+                
+                for row in rows:
+                    overview_data_html = row.find_all("td")
+                    overview_data_list = [overview_data.get_text().strip().replace("\t", "").split("\n") for overview_data in overview_data_html if overview_data.get_text().strip() != ""]
+                    
+                    if not overview_data_list:
+                        continue
+                    
+                    # Cleaning the data
+                    cleaned_overview_data_list = []
+                    for data_list in overview_data_list:
+                        cleaned_list = [item.strip() for item in data_list if item.strip() != "" and item.strip() != "/"]
+                        if cleaned_list:
+                            cleaned_overview_data_list.append(cleaned_list)
+
+                    # Forming the dictionary for each row
+                    side_keys = ["both", "attack", "defense"]
+                    for side_index, side_key in enumerate(side_keys):
+                        player_stats = {
+                            "name": cleaned_overview_data_list[0][0],
+                            "team": cleaned_overview_data_list[0][1],
+                            "rating": cleaned_overview_data_list[1][side_index],
+                            "acs": cleaned_overview_data_list[2][side_index],
+                            "kills": cleaned_overview_data_list[3][side_index],
+                            "deaths": cleaned_overview_data_list[4][side_index],
+                            "assists": cleaned_overview_data_list[5][side_index],
+                            "plus_minus": cleaned_overview_data_list[6][side_index],
+                            "kast": cleaned_overview_data_list[7][side_index],
+                            "adr": cleaned_overview_data_list[8][side_index],
+                            "hs_percentage": cleaned_overview_data_list[9][side_index],
+                            "first_kills": cleaned_overview_data_list[10][side_index],
+                            "first_deaths": cleaned_overview_data_list[11][side_index],
+                            "plus_minus_overall": cleaned_overview_data_list[12][side_index]
+                        }
+                        game_stats["box_scores"][map_id][side_key].append(player_stats)
+
+            continue
+        
+        
+        #time for individual maps
+        map_name_html = map_html.find("div", class_= "map")
+        map_name_html2 = map_name_html.find_all("span")
+        map_details = [map_detail.get_text().replace("\t", "").replace("PICK", "").strip() for map_detail in map_name_html2 if map_detail.get_text().replace("\t", "").replace("PICK", "").strip() != ""]
+        
+        game_stats["box_scores"][map_details[0]] = {"both": [], "attack": [], "defense": []}
+        
+        #essentially doing the same thing that i did for all map
+        table_body_htmls = map_html.find_all("tbody")
+        for table_body_html in table_body_htmls:
+            rows = table_body_html.find_all("tr")
+            
+            for row in rows:
+                overview_data_html = row.find_all("td")
+                overview_data_list = [overview_data.get_text().strip().replace("\t", "").split("\n") for overview_data in overview_data_html if overview_data.get_text().strip() != ""]
+                
+                if not overview_data_list:
+                    continue
+                
+                # Cleaning the data
+                cleaned_overview_data_list = []
+                for data_list in overview_data_list:
+                    cleaned_list = [item.strip() for item in data_list if item.strip() != "" and item.strip() != "/"]
+                    if cleaned_list:
+                        cleaned_overview_data_list.append(cleaned_list)
+
+                # Forming the dictionary for each row
+                side_keys = ["both", "attack", "defense"]
+                for side_index, side_key in enumerate(side_keys):
+                    player_stats = {
+                        "name": cleaned_overview_data_list[0][0],
+                        "team": cleaned_overview_data_list[0][1],
+                        "rating": cleaned_overview_data_list[1][side_index],
+                        "acs": cleaned_overview_data_list[2][side_index],
+                        "kills": cleaned_overview_data_list[3][side_index],
+                        "deaths": cleaned_overview_data_list[4][side_index],
+                        "assists": cleaned_overview_data_list[5][side_index],
+                        "plus_minus": cleaned_overview_data_list[6][side_index],
+                        "kast": cleaned_overview_data_list[7][side_index],
+                        "adr": cleaned_overview_data_list[8][side_index],
+                        "hs_percentage": cleaned_overview_data_list[9][side_index],
+                        "first_kills": cleaned_overview_data_list[10][side_index],
+                        "first_deaths": cleaned_overview_data_list[11][side_index],
+                        "plus_minus_overall": cleaned_overview_data_list[12][side_index]
+                    }
+                    game_stats["box_scores"][map_details[0]][side_key].append(player_stats)
+    
+        #general info time!!!
+        game_stats["box_scores"][map_details[0]]["general_info"] = {}
+        
+        general_info_html = map_html.find("div", class_="vm-stats-game-header")
+        teams = [general_info_html.find("div", class_="team"), general_info_html.find("div", class_="team mod-right")]
+        for i, team in enumerate(teams): 
+            general_stats_html = team.find_all("div")
+            general_stats_list = [general_stat.get_text().replace("\t", "").replace("/", "").replace(" ", "").strip().split("\n") for general_stat in general_stats_html]
+            cleaned_general_stats_list = [[item for item in sublist if item != ''] for sublist in general_stats_list]
+            if i % 2 == 0:
+                game_stats["box_scores"][map_details[0]]["general_info"][cleaned_general_stats_list[1][0]] = {
+                        "score" : cleaned_general_stats_list[0][0], 
+                        "halves": {
+                            "first_half": cleaned_general_stats_list[1][1],
+                            "second_half" : cleaned_general_stats_list[1][2], 
+                            "overtime": cleaned_general_stats_list[1][3] if len(cleaned_general_stats_list[1]) == 4 else "na", 
+                        }     
+                    }
+            else:
+                game_stats["box_scores"][map_details[0]]["general_info"][cleaned_general_stats_list[1][0]] = {
+                        "score" : cleaned_general_stats_list[2][0], 
+                        "halves": {
+                            "first_half": cleaned_general_stats_list[0][1],
+                            "second_half" : cleaned_general_stats_list[0][2], 
+                            "overtime": cleaned_general_stats_list[0][3] if len(cleaned_general_stats_list[1]) == 4 else "na", 
+                        }     
+                    }
+                
+    jsondata = json.dumps(game_stats, indent=4)
+    #print(jsondata)
+    return jsondata
+    
+    
+    
+    
+scrapeIndividualMatchData(gameID= "327267")

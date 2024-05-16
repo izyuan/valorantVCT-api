@@ -25,3 +25,6 @@ class TeamStats (BaseModel):
 class IndividualPlayerStats (BaseModel): 
     playerID: str=""
     timespan: str=""
+    
+class getIndividualMatchData (BaseModel): 
+    gameID: str=""
