@@ -432,9 +432,10 @@ def scrapeIndividualMatchData (gameID: str=""):
     
     #first scraping the overview data
     game_stats = {
-        "match_info": {},
-        "box_scores": {}
+        "box_scores": {},
+        "p2p_performance": {}
     } 
+    map_list = ["all", ]
     #all maps stats
     # All maps stats
     try:
@@ -492,6 +493,8 @@ def scrapeIndividualMatchData (gameID: str=""):
             map_name_html = map_html.find("div", class_= "map")
             map_name_html2 = map_name_html.find_all("span")
             map_details = [map_detail.get_text().replace("\t", "").replace("PICK", "").strip() for map_detail in map_name_html2 if map_detail.get_text().replace("\t", "").replace("PICK", "").strip() != ""]
+            
+            map_list.append(map_details[0]) #for performance later
             
             game_stats["box_scores"][map_details[0]] = {"both": [], "attack": [], "defense": []}
             
@@ -569,6 +572,14 @@ def scrapeIndividualMatchData (gameID: str=""):
     
     print("scraping performance data")
     
+    #preparing the json for the performacne
+    map_dictionary = {}
+    for map_name in map_list:
+        map_dictionary[map_name] = {}  #Initialize each map with an empty dictionary
+
+    print(map_dictionary)
+    game_stats["p2p_performance"] = map_dictionary
+    
     #time to scrape performance data ! 
     performance_url = f"https://www.vlr.gg/{gameID}/?game=all&tab=performance"
     print(f"url: {url}")
@@ -578,23 +589,49 @@ def scrapeIndividualMatchData (gameID: str=""):
     
     performance_html_body = soup.find("div", class_="vm-stats-container")
     performance_html_maps = performance_html_body.find_all("div", class_='vm-stats-game')
-    for performance_html_map in performance_html_maps: 
+    for map_performance_html_map, map_name in zip(performance_html_maps,map_list): 
+        print(map_name)
         #p2p data
-        performance_player_to_player_html = performance_html_map.find(lambda tag: tag.get('style') and 'overflow-x: auto; margin-bottom: 40px;' in tag.get('style'))
+        performance_player_to_player_html = map_performance_html_map.find(lambda tag: tag.get('style') and 'overflow-x: auto; margin-bottom: 40px;' in tag.get('style'))
         performance_p2p_rows = performance_player_to_player_html.find_all("tr")
-        
+        for i, performance_p2p_row in enumerate(performance_p2p_rows): 
+            if i == 0: 
+                team_abs = performance_p2p_row.find_all('div', {'class': 'team'})
+                player_and_team_abbreviation = [team_ab.get_text().strip().split() for team_ab in team_abs]
+                print(player_and_team_abbreviation)
+                game_stats["p2p_performance"][map_name][player_and_team_abbreviation[0][1]] = {}
+                
+                for player_name, team_name in player_and_team_abbreviation: 
+                    game_stats["p2p_performance"][map_name][team_name][player_name] = {}
+                
+                
+            else: 
+                #team_abs = performance_p2p_row.find_all('div', {'class': 'team'})
+                team_abbreviation = [team_ab.get_text().strip().split() for team_ab in team_abs]
+
+                
         
         
         #other individual data
-        performance_individual_player_html =performance_html_map.find(lambda tag: tag.get('style') and 'overflow-x: auto; padding-bottom: 500px; margin-bottom: -500px;' in tag.get('style'))
+        #performance_individual_player_html =performance_html_map.find(lambda tag: tag.get('style') and 'overflow-x: auto; padding-bottom: 500px; margin-bottom: -500px;' in tag.get('style'))
     
     
-    
+    print(game_stats["p2p_performance"])
     jsondata = json.dumps(game_stats, indent=4)
     #print(jsondata)
     return jsondata
     
     
-    
+"""{
+  "Team1": {
+    "Player1": {
+      "vsPlayer2": {"kills": 10},
+      "vsPlayer3": {"kills": 5}
+    },
+    "Player2": {
+      "vsPlayer1": {"kills": 3},
+      "vsPlayer3": {"kills": 8}
+    }
+  },"""
     
 scrapeIndividualMatchData(gameID= "340949")
