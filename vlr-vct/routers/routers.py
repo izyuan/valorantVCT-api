@@ -1,6 +1,7 @@
-from fastapi import APIRouter
+from fastapi import APIRouter, HTTPException
 from util.models import PlayerStats, AgentPickrates, TeamStats, IndividualPlayerStats, getIndividualMatchData
-
+from util.dictionaries import americas_teams
+import json
 router = APIRouter()
 
 @router.get("/player_stats")
@@ -36,6 +37,27 @@ async def getTeamStats (data:TeamStats):
         date_end= data.date_end
     )
     return response
+
+@router.get("/all_team_statistics")
+async def getAllTeamStats(data: TeamStats):
+    from data.webscraping import scrapeTeamStats
+    all_team_stats = []
+    
+    for team_name, team_id in americas_teams.items():
+        try:
+            response = scrapeTeamStats(
+                team=team_id,  # Use the team ID from the dictionary
+                event=data.event,
+                core=data.core,
+                date_start=data.date_start,
+                date_end=data.date_end
+            )
+            team_stats = json.loads(response)
+            all_team_stats.extend(team_stats)
+        except Exception as e:
+            print(f"Failed to retrieve stats for {team_name}: {str(e)}")
+    
+    return all_team_stats
 
 @router.get("/individual_player_stats")
 async def getIndividualStats (data: IndividualPlayerStats):

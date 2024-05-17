@@ -4,7 +4,6 @@ from lxml import html
 import json
 import re
 import sys
-
 #maybe cache it? 
 import sqlite3
 
@@ -77,6 +76,19 @@ spkeventDict = {
     "1189": ["Champions Tour 2023 Americas League", "champions tour 2023 americas league"]
 }
 
+americas_teams = {
+ "100t" : "120",
+ "g2 esports" : "11058",
+ "Leviaten" : "2359",
+ "kru esports": "2355", 
+ "cloud9": "188", 
+ "loud": "6961",
+ "sentinels": "2",
+ "nrg": "1034", 
+ "eg": "5248",
+ "mibr": "7386",
+ "furia": "2406", 
+ }
 
 def getKey(d, value): #helper function
     """
@@ -255,6 +267,8 @@ def scrapeAndMapAgentStats (event: str=None):
 
 def scrapeTeamStats (team:str="all",event: str="all", core:str="all", date_start: str="", date_end:str=""): #dates must be in YYYY-MM-DD 
     
+    team_name = getKey(americas_teams, team)
+    print (team_name)
     #getting the html for the stats
     url = f"https://vlr.gg/team/stats/{team}/?event_id={event}&series_id=all&core_id{core}&date_start={date_start}&date_end={date_end}"
     print(url)
@@ -294,6 +308,7 @@ def scrapeTeamStats (team:str="all",event: str="all", core:str="all", date_start
         map_name = perm_map_list[0]
         #creating a dictionary
         single_map_dict = {
+        "team_name": team_name, 
         "map_name" : map_name, 
         "times_played": number_num, 
         "win%" : single_map_data[1], 
@@ -634,4 +649,3 @@ def scrapeIndividualMatchData (gameID: str=""):
     }
   },"""
     
-scrapeIndividualMatchData(gameID= "340949")
