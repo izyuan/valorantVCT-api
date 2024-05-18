@@ -76,6 +76,7 @@ spkeventDict = {
     "1189": ["Champions Tour 2023 Americas League", "champions tour 2023 americas league"]
 }
 
+#remove these later, this is only for testing, can just import directly from util.dictionaries
 americas_teams = {
  "100t" : "120",
  "g2 esports" : "11058",
@@ -89,6 +90,110 @@ americas_teams = {
  "mibr": "7386",
  "furia": "2406", 
  }
+all_teams = {
+    "100 Thieves": "120",
+    "G2 Esports": "11058",
+    "Leviaten": "2359",
+    "Kru Esports": "2355",
+    "Cloud9": "188",
+    "Loud": "6961",
+    "Sentinels": "2",
+    "NRG Esports": "1034",
+    "Evil Geniuses": "5248",
+    "Mibr": "7386",
+    "Furia": "2406",
+    "FNATIC": "2593",
+    "Karmine Corp": "8877",
+    "Team Heretics": "1001",
+    "FUT Esports": "1184",
+    "Natus Vincere": "4915",
+    "BBL Esports": "397",
+    "Team Vitality": "2059",
+    "Team Liquid": "474",
+    "Gentle Mates": "12694",
+    "GIANTX": "14419",
+    "KOI": "7035",
+    "Paper Rex": "624",
+    "Gen.G": "17",
+    "DRX": "8185",
+    "T1": "14",
+    "Talon Esports": "8304",
+    "Rex Regum Qeon": "878",
+    "Team Secret": "6199",
+    "Global Esports": "918",
+    "Zeta Division": "5448",
+    "Bleed": "6387",
+    "DFM": "278",
+    "Edward Gaming": "1120",
+    "FunPlus Phoenix": "11328",
+    "Dragon Ranger Gaming": "11981",
+    "Trace Esports": "12685",
+    "All Gamers": "1119",
+    "Bilibili Gaming": "12010",
+    "TYLOO": "731",
+    "Wolves Esports": "13790",
+    "Titan Esports Club": "14137",
+    "Nova Esports": "12064",
+    "JD Gaming": "13576"
+}
+
+
+americas_teams = {
+ "100 Thieves" : "120",
+ "G2 Esports" : "11058",
+ "Leviaten" : "2359",
+ "Kru Esports": "2355", 
+ "Cloud9": "188", 
+ "Loud": "6961",
+ "Sentinels": "2",
+ "NRG Esports": "1034", 
+ "Evil Geniuses": "5248",
+ "Mibr": "7386",
+ "Furia": "2406", 
+ }
+
+pacific_teams = {
+    "Paper Rex" : "624", 
+    "Gen.G": "17", 
+    "DRX": "8185",
+    "T1": "14",
+    "Talon Esports": "8304",
+    "Rex Regum Qeon": "878", 
+    "Team Secret": "6199",
+    "Global Esports": "918", 
+    "Zeta Division": "5448",
+    "Bleed": "6387", 
+    "DFM": "278"
+}
+
+emea_teams ={
+    "FNATIC" : "2593", 
+    "Karmine Corp" : "8877", 
+    "Team Heretics" : "1001", 
+    "FUT Esports" : "1184", 
+    "Natus Vincere" : "4915", 
+    "BBL Esports" : "397", 
+    "Team Vitality" : "2059", 
+    "Team Liquid" : "474", 
+    "Gentle Mates": "12694", 
+    "GIANTX" : "14419", 
+    "KOI": "7035", 
+}
+
+china_teams = {
+    "Edward Gaming" : "1120", 
+    "FunPlus Phoenix" : "11328", 
+    "Dragon Ranger Gaming" : "11981", 
+    "Trace Esports" : "12685", 
+    "All Gamers" : "1119", 
+    "Bilibili Gaming" : "12010", 
+    "TYLOO" : "731", 
+    "Wolves Esports": "13790",
+    "Titan Esports Club": "14137", 
+    "Nova Esports" : "12064", 
+    "JD Gaming": "13576"
+ }
+
 
 def getKey(d, value): #helper function
     """
@@ -267,7 +372,7 @@ def scrapeAndMapAgentStats (event: str=None):
 
 def scrapeTeamStats (team:str="all",event: str="all", core:str="all", date_start: str="", date_end:str=""): #dates must be in YYYY-MM-DD 
     
-    team_name = getKey(americas_teams, team)
+    team_name = getKey(all_teams, team)
     print (team_name)
     #getting the html for the stats
     url = f"https://vlr.gg/team/stats/{team}/?event_id={event}&series_id=all&core_id{core}&date_start={date_start}&date_end={date_end}"

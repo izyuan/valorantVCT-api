@@ -19,7 +19,8 @@ event_id = {
     "Masters Madrid" : "1921"
 }
 
-all_teams = {
+teams_dict = {
+    "all_teams" : {
     "100 Thieves": "120",
     "G2 Esports": "11058",
     "Leviaten": "2359",
@@ -64,10 +65,8 @@ all_teams = {
     "Titan Esports Club": "14137",
     "Nova Esports": "12064",
     "JD Gaming": "13576"
-}
-
-
-americas_teams = {
+},
+    "americas_teams" : {
  "100 Thieves" : "120",
  "G2 Esports" : "11058",
  "Leviaten" : "2359",
@@ -79,9 +78,8 @@ americas_teams = {
  "Evil Geniuses": "5248",
  "Mibr": "7386",
  "Furia": "2406", 
- }
-
-pacific_teams = {
+ },
+    "pacific_teams":  {
     "Paper Rex" : "624", 
     "Gen.G": "17", 
     "DRX": "8185",
@@ -93,9 +91,8 @@ pacific_teams = {
     "Zeta Division": "5448",
     "Bleed": "6387", 
     "DFM": "278"
-}
-
-emea_teams ={
+}, 
+    "emea_teams":{
     "FNATIC" : "2593", 
     "Karmine Corp" : "8877", 
     "Team Heretics" : "1001", 
@@ -107,9 +104,8 @@ emea_teams ={
     "Gentle Mates": "12694", 
     "GIANTX" : "14419", 
     "KOI": "7035", 
-}
-
-china_teams = {
+}, 
+    "china_teams" : {
     "Edward Gaming" : "1120", 
     "FunPlus Phoenix" : "11328", 
     "Dragon Ranger Gaming" : "11981", 
@@ -122,6 +118,6 @@ china_teams = {
     "Nova Esports" : "12064", 
     "JD Gaming": "13576"
  }
+}
 
-print(json.dumps(merge_dicts(americas_teams, emea_teams, pacific_teams, china_teams),indent=4))
 
